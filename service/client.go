@@ -39,7 +39,7 @@ func (s *ClientService) GetAll() (*[]model.Client, error) {
 	db := database.GetDB()
 	var clients []model.Client
 	err := db.Model(model.Client{}).
-		Select("`id`, `enable`, `name`, `desc`, `group`, `remark`, `inbounds`, `up`, `down`, `volume`, `expiry`, `created_at`, `online_at`").
+		Select("`id`, `enable`, `name`, `email`, `sub_id`, `desc`, `group`, `remark`, `inbounds`, `up`, `down`, `volume`, `expiry`, `created_at`, `online_at`, `auto_reset`, `auto_renew`, `reset_days`, `next_reset`").
 		Scan(&clients).Error
 	if err != nil {
 		return nil, err
@@ -66,6 +66,24 @@ func (s *ClientService) validateClientName(tx *gorm.DB, client *model.Client) er
 		return common.NewErrorf("client name %q is already in use", name)
 	}
 	client.Name = name
+	client.Email = strings.TrimSpace(client.Email)
+	client.SubID = strings.TrimSpace(client.SubID)
+
+	for column, value := range map[string]string{"email": client.Email, "sub_id": client.SubID} {
+		if value == "" {
+			continue
+		}
+		query = tx.Model(model.Client{}).Where(column+" = ?", value)
+		if client.Id != 0 {
+			query = query.Where("id != ?", client.Id)
+		}
+		if err := query.Count(&count).Error; err != nil {
+			return err
+		}
+		if count > 0 {
+			return common.NewErrorf("client %s %q is already in use", column, value)
+		}
+	}
 	return nil
 }
 
@@ -545,6 +563,9 @@ func (s *ClientService) ResetClients(tx *gorm.DB, dt int64) ([]uint, error) {
 	}
 	for _, client := range resetClients {
 		client.NextReset = dt + (int64(client.ResetDays) * 86400)
+		if client.AutoRenew {
+			client.Expiry = client.NextReset
+		}
 		client.DelayStart = false
 		changes = append(changes, model.Changes{
 			DateTime: dt,
@@ -564,6 +585,9 @@ func (s *ClientService) ResetClients(tx *gorm.DB, dt int64) ([]uint, error) {
 	}
 	for _, client := range resetClients {
 		client.NextReset = dt + (int64(client.ResetDays) * 86400)
+		if client.AutoRenew {
+			client.Expiry = client.NextReset
+		}
 		client.TotalUp += client.Up
 		client.TotalDown += client.Down
 		client.Up = 0

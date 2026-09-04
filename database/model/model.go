@@ -26,6 +26,8 @@ type Client struct {
 	Id       uint            `json:"id" form:"id" gorm:"primaryKey;autoIncrement"`
 	Enable   bool            `json:"enable" form:"enable"`
 	Name     string          `json:"name" form:"name"`
+	Email    string          `json:"email" form:"email"`
+	SubID    string          `json:"subId" form:"subId"`
 	Config   json.RawMessage `json:"config,omitempty" form:"config"`
 	Inbounds json.RawMessage `json:"inbounds" form:"inbounds"`
 	Links    json.RawMessage `json:"links,omitempty" form:"links"`
@@ -44,6 +46,7 @@ type Client struct {
 	// Delay start and periodic reset
 	DelayStart bool  `json:"delayStart" form:"delayStart" gorm:"default:false;not null"`
 	AutoReset  bool  `json:"autoReset" form:"autoReset" gorm:"default:false;not null"`
+	AutoRenew  bool  `json:"autoRenew" form:"autoRenew" gorm:"default:false;not null"`
 	ResetDays  int   `json:"resetDays" form:"resetDays" gorm:"default:0;not null"`
 	NextReset  int64 `json:"nextReset" form:"nextReset" gorm:"default:0;not null"`
 	TotalUp    int64 `json:"totalUp" form:"totalUp" gorm:"default:0;not null"`

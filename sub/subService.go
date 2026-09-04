@@ -10,6 +10,7 @@ import (
 	"github.com/alireza0/s-ui/database/model"
 	"github.com/alireza0/s-ui/service"
 	"github.com/alireza0/s-ui/util"
+	"gorm.io/gorm"
 )
 
 type SubService struct {
@@ -45,9 +46,14 @@ func (s *SubService) GetSubs(subId string) (*string, []string, error) {
 }
 
 func (j *SubService) getClientBySubId(subId string) (*model.Client, error) {
-	db := database.GetDB()
+	return getClientBySubscriptionID(database.GetDB(), subId)
+}
+
+func getClientBySubscriptionID(db *gorm.DB, subId string) (*model.Client, error) {
 	client := &model.Client{}
-	err := db.Model(model.Client{}).Where("enable = true and name = ?", subId).First(client).Error
+	err := db.Model(model.Client{}).
+		Where("enable = true AND (sub_id = ? OR ((sub_id IS NULL OR sub_id = '') AND name = ?))", subId, subId).
+		First(client).Error
 	if err != nil {
 		return nil, err
 	}
