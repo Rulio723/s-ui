@@ -83,10 +83,17 @@ func checkLogin(c *gin.Context) {
 		if c.GetHeader("X-Requested-With") == "XMLHttpRequest" {
 			pureJsonMsg(c, false, "Invalid login")
 		} else {
-			c.Redirect(http.StatusTemporaryRedirect, "/login")
+			c.Redirect(http.StatusTemporaryRedirect, loginPath(c.Request.URL.Path))
 		}
 		c.Abort()
 	} else {
 		c.Next()
 	}
+}
+
+func loginPath(requestPath string) string {
+	if apiIndex := strings.LastIndex(requestPath, "/api/"); apiIndex >= 0 {
+		return requestPath[:apiIndex+1] + "login"
+	}
+	return "/login"
 }
