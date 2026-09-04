@@ -307,6 +307,22 @@ func (a *ApiService) Save(c *gin.Context, loginUser string) {
 	act := c.Request.FormValue("action")
 	data := c.Request.FormValue("data")
 	initUsers := c.Request.FormValue("initUsers")
+	if obj == "clients" && act == "traffic" {
+		trafficAge, err := a.SettingService.GetTrafficAge()
+		if err != nil {
+			jsonMsg(c, "save", err)
+			return
+		}
+		bucketSeconds, err := a.SettingService.GetStatsBucketSeconds()
+		if err != nil {
+			jsonMsg(c, "save", err)
+			return
+		}
+		if err = a.StatsService.SaveStats(trafficAge > 0, bucketSeconds); err != nil {
+			jsonMsg(c, "save", err)
+			return
+		}
+	}
 	objs, err := a.ConfigService.Save(obj, act, json.RawMessage(data), initUsers, loginUser, hostname)
 	if err != nil {
 		jsonMsg(c, "save", err)

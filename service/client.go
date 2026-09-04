@@ -92,6 +92,31 @@ func (s *ClientService) Save(tx *gorm.DB, act string, data json.RawMessage, host
 	var inboundIds []uint
 
 	switch act {
+	case "traffic":
+		var traffic struct {
+			Id   uint  `json:"id"`
+			Up   int64 `json:"up"`
+			Down int64 `json:"down"`
+		}
+		if err = json.Unmarshal(data, &traffic); err != nil {
+			return nil, err
+		}
+		if traffic.Id == 0 {
+			return nil, common.NewError("client id must not be empty")
+		}
+		if traffic.Up < 0 || traffic.Down < 0 {
+			return nil, common.NewError("client traffic must not be negative")
+		}
+		result := tx.Model(model.Client{}).Where("id = ?", traffic.Id).UpdateColumns(map[string]interface{}{
+			"up":   traffic.Up,
+			"down": traffic.Down,
+		})
+		if result.Error != nil {
+			return nil, result.Error
+		}
+		if result.RowsAffected == 0 {
+			return nil, common.NewErrorf("client %d not found", traffic.Id)
+		}
 	case "new", "edit":
 		var client model.Client
 		err = json.Unmarshal(data, &client)
